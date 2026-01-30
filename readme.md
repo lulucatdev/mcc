@@ -44,7 +44,7 @@ Claude Code reads from `CLAUDE_CONFIG_DIR`. We point it to `~/.mcc/current`. We 
 ## Installation
 
 ```bash
-git clone https://github.com/anthropics/mcc.git
+git clone https://github.com/lulucatdev/mcc.git
 cd mcc
 make setup
 source ~/.zshrc
@@ -177,7 +177,7 @@ Claude Code 读取 `CLAUDE_CONFIG_DIR`。我们把它指向 `~/.mcc/current`。�
 ## 安装
 
 ```bash
-git clone https://github.com/anthropics/mcc.git
+git clone https://github.com/lulucatdev/mcc.git
 cd mcc
 make setup
 source ~/.zshrc
