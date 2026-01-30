@@ -1,0 +1,35 @@
+# Binary
+mcc
+multicc
+multi-claude-code
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Debug
+*.log
+debug/
+
+# Local config
+.env
+.env.local
