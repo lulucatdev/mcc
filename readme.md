@@ -2,44 +2,59 @@
 
 > *"One subscription is never enough."* — Every power user, probably
 
-A CLI tool to manage multiple Claude Code accounts. Switch between your personal, work, and "totally-not-my-alt" accounts with a single command.
+A CLI tool to **run multiple Claude Code instances with different accounts simultaneously**.
 
 [中文说明](#中文说明)
 
+## What This Is (and Isn't)
+
+**This is NOT a "switch" tool.** You don't switch your whole environment to another account.
+
+**This IS a "run" tool.** Each terminal can run a Claude Code instance with a different account.
+
+```bash
+# Terminal 1
+mcc run work      # Claude instance using work account
+
+# Terminal 2
+mcc run personal  # Claude instance using personal account
+
+# Terminal 3
+mcc               # Claude instance using default account
+```
+
+Three terminals. Three accounts. Running simultaneously. No conflicts.
+
 ## The Problem
 
-You have 2 Claude subscriptions. Maybe 3. You're not addicted, you just have... *needs*.
-
-But Claude Code only lets you stay logged into one account at a time. Every switch means:
-1. Log out
-2. Log in
-3. Wait
-4. Forget which account you're on
-5. Accidentally use your work quota for personal projects
-6. Regret
+You have multiple Claude subscriptions. But Claude Code ties to one account per config directory. Want to use your work account? Log out, log in, wait, configure...
 
 ## The Solution
 
 ```bash
-mcc              # Back to default, like nothing happened
-mcc run work     # Work mode activated
-mcc run personal # Time for side projects
+mcc run work     # Launches claude with work account
+mcc run personal # Launches claude with personal account
+mcc              # Launches claude with default account
 ```
 
-That's it. No logout. No login. Just vibes.
+Each command spawns a Claude instance using that account's config. Open as many as you want.
 
 ## How it Works
 
 ```
 ~/.mcc/
 ├── profiles/
-│   ├── default/    ← Your main account lives here
-│   ├── work/       ← Work account
-│   └── chaotic/    ← We don't talk about this one
-└── current → profiles/default  ← Magic symlink
+│   ├── default/    ← Account A's config
+│   ├── work/       ← Account B's config
+│   └── personal/   ← Account C's config
+└── current → ...   ← Points to last used profile
 ```
 
-Claude Code reads from `CLAUDE_CONFIG_DIR`. We point it to `~/.mcc/current`. We control what `current` points to. Simple.
+When you run `mcc run work`, it:
+1. Points the symlink to `profiles/work`
+2. Launches Claude with `CLAUDE_CONFIG_DIR=~/.mcc/current`
+
+Each terminal gets its own Claude process with the right account.
 
 ## Installation
 
@@ -137,42 +152,57 @@ MIT License - Lulucat Innovations
 
 > *"一个订阅永远不够。"* — 每个重度用户
 
-一个管理多个 Claude Code 账号的命令行工具。在个人账号、工作账号之间一键切换。
+一个让你**同时运行多个不同账号的 Claude Code 实例**的命令行工具。
+
+## 这是什么（和不是什么）
+
+**这不是"切换"工具。** 不是把整个环境切换到另一个账号。
+
+**这是"运行"工具。** 每个终端可以运行一个使用不同账号的 Claude Code 实例。
+
+```bash
+# 终端 1
+mcc run work      # 使用工作账号的 Claude 实例
+
+# 终端 2
+mcc run personal  # 使用个人账号的 Claude 实例
+
+# 终端 3
+mcc               # 使用默认账号的 Claude 实例
+```
+
+三个终端。三个账号。同时运行。互不干扰。
 
 ## 问题
 
-你有 2 个 Claude 订阅。也许 3 个。你没有上瘾，你只是有... *需求*。
-
-但 Claude Code 一次只能登录一个账号。每次切换都意味着：
-1. 登出
-2. 登录
-3. 等待
-4. 忘记当前是哪个账号
-5. 不小心用工作额度做私人项目
-6. 后悔
+你有多个 Claude 订阅。但 Claude Code 的配置目录绑定一个账号。想用工作账号？登出、登录、等待、配置...
 
 ## 解决方案
 
 ```bash
-mcc              # 回到默认账号
-mcc run work     # 工作模式启动
-mcc run personal # 摸鱼时间到
+mcc run work     # 启动使用工作账号的 claude
+mcc run personal # 启动使用个人账号的 claude
+mcc              # 启动使用默认账号的 claude
 ```
 
-就这样。不用登出。不用登录。优雅。
+每个命令启动一个使用对应账号配置的 Claude 实例。想开几个开几个。
 
 ## 工作原理
 
 ```
 ~/.mcc/
 ├── profiles/
-│   ├── default/    ← 主账号
-│   ├── work/       ← 工作账号
-│   └── chaotic/    ← 不可描述
-└── current → profiles/default  ← 神奇的软链接
+│   ├── default/    ← 账号 A 的配置
+│   ├── work/       ← 账号 B 的配置
+│   └── personal/   ← 账号 C 的配置
+└── current → ...   ← 指向最后使用的配置
 ```
 
-Claude Code 读取 `CLAUDE_CONFIG_DIR`。我们把它指向 `~/.mcc/current`。我们控制 `current` 指向谁。就这么简单。
+当你运行 `mcc run work` 时：
+1. 把软链接指向 `profiles/work`
+2. 用 `CLAUDE_CONFIG_DIR=~/.mcc/current` 启动 Claude
+
+每个终端获得自己的 Claude 进程，使用正确的账号。
 
 ## 安装
 
