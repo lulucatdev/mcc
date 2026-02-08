@@ -79,14 +79,16 @@ source ~/.zshrc
 ## Usage
 
 ```bash
-mcc                  # Switch to default and launch claude
-mcc run <name>       # Switch to profile and launch claude
-mcc new <name>       # Create a new profile
-mcc sync [name]      # Sync settings from ~/.claude (excludes credentials)
-mcc status           # Show current status and profiles
-mcc list             # List all profiles
-mcc delete <name>    # Delete a profile
-mcc help             # Show help
+mcc                              # Switch to default and launch claude
+mcc run <name>                   # Switch to profile and launch claude
+mcc new <name>                   # Create a new claude profile
+mcc new <name> <provider> <key>  # Create a profile with a provider
+mcc set-key <name> <api-key>     # Update API key for a profile
+mcc sync [name]                  # Sync settings from ~/.claude (excludes credentials)
+mcc status                       # Show current status and profiles
+mcc list                         # List all profiles
+mcc delete <name>                # Delete a profile
+mcc help                         # Show help
 ```
 
 **Aliases:** `multicc` and `multi-claude-code` also work, if you're feeling verbose.
@@ -110,6 +112,37 @@ mcc run work
 mcc
 ```
 
+## Kimi Coding Support
+
+mcc supports [Kimi Coding](https://platform.moonshot.cn/) as an alternative provider. Kimi Coding uses the same `claude` CLI but connects to the Kimi API instead.
+
+### Setup
+
+```bash
+# Create a Kimi profile with your API key
+mcc new kimi-work kimi sk-your-kimi-api-key
+
+# Launch it
+mcc run kimi-work
+```
+
+This sets `ANTHROPIC_BASE_URL` and `ANTHROPIC_API_KEY` automatically when launching claude.
+
+### Managing API Keys
+
+```bash
+# Update an existing profile's API key
+mcc set-key kimi-work sk-new-api-key
+```
+
+### How it Works
+
+When you run `mcc run kimi-work`, mcc launches the `claude` CLI with these extra environment variables:
+- `ANTHROPIC_BASE_URL=https://api.kimi.com/coding/`
+- `ANTHROPIC_API_KEY=<your kimi api key>`
+
+The profile's provider info is stored in `.mcc-profile.json` inside the profile directory. Claude profiles don't need this file.
+
 ## Roadmap
 
 ### v1.0 - Current
@@ -117,14 +150,13 @@ mcc
 - [x] Profile switching with auto-launch
 - [x] Settings sync (without credentials)
 - [x] Works on macOS and Linux
+- [x] Kimi Coding provider support
 
 ### v2.0 - The Multiverse
 > *What if `mcc` wasn't just for Claude?*
 
 Imagine:
 ```bash
-mcc run claude      # Claude Code
-mcc run kimi        # Kimi (Moonshot AI)
 mcc run copilot     # GitHub Copilot
 mcc run cursor      # Cursor
 mcc run gemini      # Google Gemini
@@ -250,14 +282,16 @@ source ~/.zshrc
 ## 使用方法
 
 ```bash
-mcc                  # 切换到 default 并启动 claude
-mcc run <名称>       # 切换到指定配置并启动 claude
-mcc new <名称>       # 创建新配置
-mcc sync [名称]      # 从 ~/.claude 同步设置（不包括登录凭证）
-mcc status           # 显示当前状态和所有配置
-mcc list             # 列出所有配置
-mcc delete <名称>    # 删除配置
-mcc help             # 显示帮助
+mcc                                    # 切换到 default 并启动 claude
+mcc run <名称>                         # 切换到指定配置并启动 claude
+mcc new <名称>                         # 创建新的 claude 配置
+mcc new <名称> <提供商> <API密钥>       # 创建指定提供商的配置
+mcc set-key <名称> <API密钥>           # 更新配置的 API 密钥
+mcc sync [名称]                        # 从 ~/.claude 同步设置（不包括登录凭证）
+mcc status                             # 显示当前状态和所有配置
+mcc list                               # 列出所有配置
+mcc delete <名称>                      # 删除配置
+mcc help                               # 显示帮助
 ```
 
 **别名：** `multicc` 和 `multi-claude-code` 也可以用，如果你喜欢打字的话。
@@ -281,6 +315,37 @@ mcc run work
 mcc
 ```
 
+## Kimi Coding 支持
+
+mcc 支持 [Kimi Coding](https://platform.moonshot.cn/) 作为替代提供商。Kimi Coding 使用相同的 `claude` CLI，但连接到 Kimi API。
+
+### 设置
+
+```bash
+# 使用你的 API 密钥创建 Kimi 配置
+mcc new kimi-work kimi sk-your-kimi-api-key
+
+# 启动它
+mcc run kimi-work
+```
+
+启动时会自动设置 `ANTHROPIC_BASE_URL` 和 `ANTHROPIC_API_KEY`。
+
+### 管理 API 密钥
+
+```bash
+# 更新已有配置的 API 密钥
+mcc set-key kimi-work sk-new-api-key
+```
+
+### 工作原理
+
+当你运行 `mcc run kimi-work` 时，mcc 会用以下额外环境变量启动 `claude` CLI：
+- `ANTHROPIC_BASE_URL=https://api.kimi.com/coding/`
+- `ANTHROPIC_API_KEY=<你的 Kimi API 密钥>`
+
+配置的提供商信息存储在配置目录内的 `.mcc-profile.json` 文件中。Claude 配置不需要此文件。
+
 ## 路线图
 
 ### v1.0 - 当前版本
@@ -288,14 +353,13 @@ mcc
 - [x] 配置切换 + 自动启动
 - [x] 设置同步（不含凭证）
 - [x] 支持 macOS 和 Linux
+- [x] Kimi Coding 提供商支持
 
 ### v2.0 - 多元宇宙
 > *如果 `mcc` 不只是给 Claude 用呢？*
 
 想象一下：
 ```bash
-mcc run claude      # Claude Code
-mcc run kimi        # Kimi (月之暗面)
 mcc run copilot     # GitHub Copilot
 mcc run cursor      # Cursor
 mcc run gemini      # Google Gemini

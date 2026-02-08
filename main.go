@@ -10,15 +10,56 @@ import (
 )
 
 const (
-	mccDirName     = ".mcc"
-	profilesDirName = "profiles"
-	currentLinkName = "current"
-	configFileName  = "config.json"
-	defaultProfile  = "default"
+	mccDirName       = ".mcc"
+	profilesDirName  = "profiles"
+	currentLinkName  = "current"
+	configFileName   = "config.json"
+	defaultProfile   = "default"
+	profileMetaFile  = ".mcc-profile.json"
 )
 
 type Config struct {
 	CurrentProfile string `json:"current_profile"`
+}
+
+type ProfileMeta struct {
+	Provider string `json:"provider"`
+	APIKey   string `json:"api_key"`
+}
+
+func loadProfileMeta(profilePath string) *ProfileMeta {
+	data, err := os.ReadFile(filepath.Join(profilePath, profileMetaFile))
+	if err != nil {
+		return &ProfileMeta{Provider: "claude"}
+	}
+	var meta ProfileMeta
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return &ProfileMeta{Provider: "claude"}
+	}
+	if meta.Provider == "" {
+		meta.Provider = "claude"
+	}
+	return &meta
+}
+
+func saveProfileMeta(profilePath string, meta *ProfileMeta) error {
+	data, err := json.MarshalIndent(meta, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(profilePath, profileMetaFile), data, 0644)
+}
+
+func getProviderEnv(meta *ProfileMeta) []string {
+	switch meta.Provider {
+	case "kimi":
+		return []string{
+			"ANTHROPIC_BASE_URL=https://api.kimi.com/coding/",
+			"ANTHROPIC_API_KEY=" + meta.APIKey,
+		}
+	default: // "claude" or empty
+		return nil
+	}
 }
 
 func getMccDir() string {
@@ -243,13 +284,19 @@ func switchProfile(name string, autoLaunch bool) error {
 	fmt.Printf("✓ Switched to profile: %s\n", name)
 
 	if autoLaunch {
-		fmt.Println("  Launching claude...")
-		return launchClaude(profilePath)
+		meta := loadProfileMeta(profilePath)
+		extraEnv := getProviderEnv(meta)
+		if meta.Provider != "claude" {
+			fmt.Printf("  Launching claude (provider: %s)...\n", meta.Provider)
+		} else {
+			fmt.Println("  Launching claude...")
+		}
+		return launchClaude(profilePath, extraEnv)
 	}
 	return nil
 }
 
-func createProfile(name string) error {
+func createProfile(name string, provider string, apiKey string) error {
 	if profileExists(name) {
 		return fmt.Errorf("profile '%s' already exists", name)
 	}
@@ -270,12 +317,21 @@ func createProfile(name string) error {
 		}
 	}
 
+	// Save profile metadata for non-claude providers
+	if provider != "" && provider != "claude" {
+		meta := &ProfileMeta{Provider: provider, APIKey: apiKey}
+		if err := saveProfileMeta(profilePath, meta); err != nil {
+			return fmt.Errorf("failed to save profile metadata: %w", err)
+		}
+	}
+
 	fmt.Printf("✓ Created profile: %s\n", name)
+	if provider != "" && provider != "claude" {
+		fmt.Printf("  Provider: %s\n", provider)
+	}
 	fmt.Println()
 	fmt.Println("To use this profile:")
-	fmt.Printf("  1. Run: mcc %s\n", name)
-	fmt.Println("  2. Run: claude")
-	fmt.Println("  3. Login when prompted - credentials will be saved to this profile")
+	fmt.Printf("  mcc run %s\n", name)
 	return nil
 }
 
@@ -304,6 +360,27 @@ func deleteProfile(name string) error {
 	}
 
 	fmt.Printf("✓ Deleted profile: %s\n", name)
+	return nil
+}
+
+func setAPIKey(name string, apiKey string) error {
+	if !profileExists(name) {
+		return fmt.Errorf("profile '%s' does not exist", name)
+	}
+
+	profilePath := filepath.Join(getProfilesDir(), name)
+	meta := loadProfileMeta(profilePath)
+
+	if meta.Provider == "claude" {
+		return fmt.Errorf("profile '%s' uses the claude provider and does not need an API key", name)
+	}
+
+	meta.APIKey = apiKey
+	if err := saveProfileMeta(profilePath, meta); err != nil {
+		return fmt.Errorf("failed to save profile metadata: %w", err)
+	}
+
+	fmt.Printf("✓ Updated API key for profile: %s\n", name)
 	return nil
 }
 
@@ -451,10 +528,16 @@ func showStatus() error {
 	fmt.Println("Available profiles:")
 
 	for _, profile := range profiles {
+		profilePath := filepath.Join(getProfilesDir(), profile)
+		meta := loadProfileMeta(profilePath)
+		providerTag := ""
+		if meta.Provider != "claude" {
+			providerTag = fmt.Sprintf(" [%s]", meta.Provider)
+		}
 		if profile == config.CurrentProfile {
-			fmt.Printf("  * %s (active)\n", profile)
+			fmt.Printf("  * %s (active)%s\n", profile, providerTag)
 		} else {
-			fmt.Printf("    %s\n", profile)
+			fmt.Printf("    %s%s\n", profile, providerTag)
 		}
 	}
 
@@ -481,25 +564,32 @@ func showHelp() {
 	fmt.Println("Claude Code Account Manager (mcc)")
 	fmt.Println()
 	fmt.Println("Usage:")
-	fmt.Println("  mcc                  Switch to default and launch claude")
-	fmt.Println("  mcc run <name>       Switch to profile and launch claude")
-	fmt.Println("  mcc new <name>       Create a new profile")
-	fmt.Println("  mcc sync [name]      Sync ~/.claude to profile (default: current)")
-	fmt.Println("  mcc status           Show current status and profiles")
-	fmt.Println("  mcc list             List all profiles")
-	fmt.Println("  mcc delete <name>    Delete a profile")
-	fmt.Println("  mcc help             Show this help message")
+	fmt.Println("  mcc                              Switch to default and launch claude")
+	fmt.Println("  mcc run <name>                   Switch to profile and launch claude")
+	fmt.Println("  mcc new <name>                   Create a new claude profile")
+	fmt.Println("  mcc new <name> <provider> <key>  Create a profile with a provider")
+	fmt.Println("  mcc set-key <name> <api-key>     Update API key for a profile")
+	fmt.Println("  mcc sync [name]                  Sync ~/.claude to profile (default: current)")
+	fmt.Println("  mcc status                       Show current status and profiles")
+	fmt.Println("  mcc list                         List all profiles")
+	fmt.Println("  mcc delete <name>                Delete a profile")
+	fmt.Println("  mcc help                         Show this help message")
+	fmt.Println()
+	fmt.Println("Providers:")
+	fmt.Println("  claude (default)  Standard Claude Code with Anthropic account")
+	fmt.Println("  kimi              Kimi Coding (uses claude CLI with Kimi API)")
 	fmt.Println()
 	fmt.Println("Setup:")
 	fmt.Println("  Add this to your ~/.zshrc or ~/.bashrc:")
 	fmt.Printf("  export CLAUDE_CONFIG_DIR=\"%s\"\n", getCurrentLink())
 	fmt.Println()
 	fmt.Println("Examples:")
-	fmt.Println("  mcc                  # Switch to default and launch claude")
-	fmt.Println("  mcc run work         # Switch to 'work' and launch claude")
-	fmt.Println("  mcc new work         # Create a new 'work' profile")
-	fmt.Println("  mcc sync             # Sync ~/.claude to current profile")
-	fmt.Println("  mcc status           # Show current profile and all profiles")
+	fmt.Println("  mcc                              # Launch with default profile")
+	fmt.Println("  mcc run work                     # Launch with 'work' profile")
+	fmt.Println("  mcc new work                     # Create a claude profile")
+	fmt.Println("  mcc new kimi-work kimi sk-xxx    # Create a Kimi profile")
+	fmt.Println("  mcc set-key kimi-work sk-new     # Update API key")
+	fmt.Println("  mcc status                       # Show all profiles")
 }
 
 func main() {
@@ -540,21 +630,40 @@ func main() {
 		}
 		config, _ := loadConfig()
 		for _, profile := range profiles {
+			profilePath := filepath.Join(getProfilesDir(), profile)
+			meta := loadProfileMeta(profilePath)
+			providerTag := ""
+			if meta.Provider != "claude" {
+				providerTag = fmt.Sprintf(" [%s]", meta.Provider)
+			}
 			if profile == config.CurrentProfile {
-				fmt.Printf("* %s\n", profile)
+				fmt.Printf("* %s%s\n", profile, providerTag)
 			} else {
-				fmt.Printf("  %s\n", profile)
+				fmt.Printf("  %s%s\n", profile, providerTag)
 			}
 		}
 
 	case "new", "create", "add":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "Error: profile name required")
-			fmt.Fprintln(os.Stderr, "Usage: mcc new <name>")
+			fmt.Fprintln(os.Stderr, "Usage: mcc new <name> [provider] [api-key]")
 			os.Exit(1)
 		}
 		name := args[1]
-		if err := createProfile(name); err != nil {
+		provider := ""
+		apiKey := ""
+		if len(args) >= 3 {
+			provider = args[2]
+		}
+		if len(args) >= 4 {
+			apiKey = args[3]
+		}
+		if provider != "" && provider != "claude" && apiKey == "" {
+			fmt.Fprintf(os.Stderr, "Error: API key required for provider '%s'\n", provider)
+			fmt.Fprintf(os.Stderr, "Usage: mcc new <name> %s <api-key>\n", provider)
+			os.Exit(1)
+		}
+		if err := createProfile(name, provider, apiKey); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
@@ -597,6 +706,19 @@ func main() {
 			name = defaultProfile
 		}
 		if err := switchProfile(name, true); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+	case "set-key":
+		if len(args) < 3 {
+			fmt.Fprintln(os.Stderr, "Error: profile name and API key required")
+			fmt.Fprintln(os.Stderr, "Usage: mcc set-key <name> <api-key>")
+			os.Exit(1)
+		}
+		name := args[1]
+		apiKey := args[2]
+		if err := setAPIKey(name, apiKey); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}

@@ -8,7 +8,7 @@ import (
 	"os/exec"
 )
 
-func launchClaude(profilePath string) error {
+func launchClaude(profilePath string, extraEnv []string) error {
 	// Find claude executable
 	claudePath, err := exec.LookPath("claude")
 	if err != nil {
@@ -20,6 +20,7 @@ func launchClaude(profilePath string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = append(os.Environ(), fmt.Sprintf("CLAUDE_CONFIG_DIR=%s", profilePath))
+	cmd.Env = append(cmd.Env, extraEnv...)
 
 	return cmd.Run()
 }

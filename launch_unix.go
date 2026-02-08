@@ -9,7 +9,7 @@ import (
 	"syscall"
 )
 
-func launchClaude(profilePath string) error {
+func launchClaude(profilePath string, extraEnv []string) error {
 	// Find claude executable
 	claudePath, err := exec.LookPath("claude")
 	if err != nil {
@@ -20,6 +20,7 @@ func launchClaude(profilePath string) error {
 	// so that concurrent instances each use their own profile
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("CLAUDE_CONFIG_DIR=%s", profilePath))
+	env = append(env, extraEnv...)
 
 	// Use syscall.Exec to replace current process with claude
 	return syscall.Exec(claudePath, []string{"claude"}, env)
