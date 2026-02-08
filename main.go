@@ -246,21 +246,22 @@ func switchProfile(name string, autoLaunch bool) error {
 
 	if autoLaunch {
 		fmt.Println("  Launching claude...")
-		return launchClaude()
+		return launchClaude(profilePath)
 	}
 	return nil
 }
 
-func launchClaude() error {
+func launchClaude(profilePath string) error {
 	// Find claude executable
 	claudePath, err := exec.LookPath("claude")
 	if err != nil {
 		return fmt.Errorf("claude not found in PATH: %w", err)
 	}
 
-	// Set CLAUDE_CONFIG_DIR and exec claude (replace current process)
+	// Set CLAUDE_CONFIG_DIR to the actual profile directory (not the symlink)
+	// so that concurrent instances each use their own profile
 	env := os.Environ()
-	env = append(env, fmt.Sprintf("CLAUDE_CONFIG_DIR=%s", getCurrentLink()))
+	env = append(env, fmt.Sprintf("CLAUDE_CONFIG_DIR=%s", profilePath))
 
 	// Use syscall.Exec to replace current process with claude
 	return syscall.Exec(claudePath, []string{"claude"}, env)
