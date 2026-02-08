@@ -50,6 +50,31 @@ func saveProfileMeta(profilePath string, meta *ProfileMeta) error {
 	return os.WriteFile(filepath.Join(profilePath, profileMetaFile), data, 0644)
 }
 
+// ensureOnboardingComplete sets hasCompletedOnboarding in the profile's
+// .claude.json so that the claude CLI skips the login/onboarding flow.
+// This is required for API-key-based providers like Kimi.
+func ensureOnboardingComplete(profilePath string) error {
+	claudeJSON := filepath.Join(profilePath, ".claude.json")
+	data := make(map[string]interface{})
+
+	if raw, err := os.ReadFile(claudeJSON); err == nil {
+		json.Unmarshal(raw, &data)
+	}
+
+	if v, ok := data["hasCompletedOnboarding"]; ok {
+		if b, ok := v.(bool); ok && b {
+			return nil
+		}
+	}
+
+	data["hasCompletedOnboarding"] = true
+	out, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(claudeJSON, out, 0600)
+}
+
 func getProviderEnv(meta *ProfileMeta) []string {
 	switch meta.Provider {
 	case "kimi":
@@ -287,6 +312,7 @@ func switchProfile(name string, autoLaunch bool) error {
 		meta := loadProfileMeta(profilePath)
 		extraEnv := getProviderEnv(meta)
 		if meta.Provider != "claude" {
+			ensureOnboardingComplete(profilePath)
 			fmt.Printf("  Launching claude (provider: %s)...\n", meta.Provider)
 		} else {
 			fmt.Println("  Launching claude...")
@@ -322,6 +348,10 @@ func createProfile(name string, provider string, apiKey string) error {
 		meta := &ProfileMeta{Provider: provider, APIKey: apiKey}
 		if err := saveProfileMeta(profilePath, meta); err != nil {
 			return fmt.Errorf("failed to save profile metadata: %w", err)
+		}
+		// Mark onboarding as completed so claude CLI doesn't prompt for login
+		if err := ensureOnboardingComplete(profilePath); err != nil {
+			return fmt.Errorf("failed to set onboarding flag: %w", err)
 		}
 	}
 
