@@ -58,6 +58,17 @@ Each terminal gets its own Claude process with the right account.
 
 ## Installation
 
+### Download Pre-built Binary
+
+Download the latest binary for your platform from [GitHub Releases](https://github.com/lulucatdev/mcc/releases), then:
+
+```bash
+chmod +x mcc-*
+sudo mv mcc-* /usr/local/bin/mcc
+```
+
+### Build from Source
+
 ```bash
 git clone https://github.com/lulucatdev/mcc.git
 cd mcc
@@ -131,10 +142,22 @@ One tool to rule them all. One tool to find them. One tool to bring them all, an
 
 ## Requirements
 
-- Go 1.19+
-- macOS or Linux
+- macOS, Linux, or Windows
 - Claude Code CLI installed
 - Multiple subscriptions (optional but... why else are you here?)
+
+## Release Workflow
+
+Releases are automated via GitHub Actions. When a version tag is pushed:
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The workflow automatically:
+1. Cross-compiles binaries for 6 platforms (darwin/amd64, darwin/arm64, linux/amd64, linux/arm64, windows/amd64, windows/arm64)
+2. Creates a GitHub Release with all binaries attached
 
 ## Contributing
 
@@ -205,6 +228,17 @@ mcc              # 启动使用默认账号的 claude
 每个终端获得自己的 Claude 进程，使用正确的账号。
 
 ## 安装
+
+### 下载预编译二进制
+
+从 [GitHub Releases](https://github.com/lulucatdev/mcc/releases) 下载适合你平台的最新版本，然后：
+
+```bash
+chmod +x mcc-*
+sudo mv mcc-* /usr/local/bin/mcc
+```
+
+### 从源码构建
 
 ```bash
 git clone https://github.com/lulucatdev/mcc.git
@@ -279,10 +313,22 @@ mcc run gemini      # Google Gemini
 
 ## 环境要求
 
-- Go 1.19+
-- macOS 或 Linux
+- macOS、Linux 或 Windows
 - 已安装 Claude Code CLI
 - 多个订阅（可选，但... 不然你来这干嘛？）
+
+## 发布工作流
+
+发布通过 GitHub Actions 自动化。当推送版本标签时：
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+工作流自动：
+1. 交叉编译 6 个平台的二进制文件（darwin/amd64、darwin/arm64、linux/amd64、linux/arm64、windows/amd64、windows/arm64）
+2. 创建 GitHub Release 并附带所有二进制文件
 
 ## 贡献
 
